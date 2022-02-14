@@ -1,0 +1,1016 @@
+---
+title: "Zieve_FinalProject"
+author: "Josh"
+date: "11/24/2019"
+output: html_document
+---
+
+```{r}
+#clear everything
+rm(list = ls())
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+token = "GET YOUR OWN!!!"
+```
+
+```{r}
+#Load Packages
+library(vars)
+library(tseries)
+library(forecast)
+library(lmtest)
+library(ggplot2)
+library(httr)
+library(jsonlite)
+library(Hmisc)
+```
+
+#Load Data
+```{r}
+#Load data US Industrial Production
+endpoint = "https://api.stlouisfed.org/fred/"
+search_text = "IPGMFN"
+
+series_id = "IPGMFN"
+
+url = paste0(endpoint, 
+             "series/observations?series_id=",series_id,
+             "&api_key=", 
+             token, "&file_type=json")
+print(url)
+
+#GET Request
+res = httr::GET(url)
+print(res)
+
+#Extract Content
+con = httr::content(res, as = "text", encoding = "UTF-8")
+print(con)
+
+#Parse Content
+tmp = jsonlite::fromJSON(con, flatten = TRUE)
+head(tmp)
+
+Manufacturing = data.frame(tmp$observations)
+Manufacturing$value <- as.numeric(Manufacturing$value)
+```
+
+```{r}
+#Load data Economic Policy Uncertainty Index for United States
+endpoint = "https://api.stlouisfed.org/fred/"
+search_text = "USEPUINDXM"
+series_id = "USEPUINDXM"
+
+url = paste0(endpoint, 
+             "series/observations?series_id=",series_id,
+             "&api_key=", 
+             token, "&file_type=json")
+print(url)
+
+#GET Request
+res = httr::GET(url)
+print(res)
+
+#Extract Content
+con = httr::content(res, as = "text", encoding = "UTF-8")
+print(con)
+
+#Parse Content
+tmp = jsonlite::fromJSON(con, flatten = TRUE)
+head(tmp)
+
+Uncertainty = data.frame(tmp$observations)
+Uncertainty$value <- as.numeric(Uncertainty$value)
+```
+
+```{r}
+#Load data Exports: Value Goods for China
+endpoint = "https://api.stlouisfed.org/fred/"
+search_text = "XTEXVA01CNM667S"
+series_id = "XTEXVA01CNM667S"
+
+url = paste0(endpoint, 
+             "series/observations?series_id=",series_id,
+             "&api_key=", 
+             token, "&file_type=json")
+print(url)
+
+#GET Request
+res = httr::GET(url)
+print(res)
+
+#Extract Content
+con = httr::content(res, as = "text", encoding = "UTF-8")
+print(con)
+
+#Parse Content
+tmp = jsonlite::fromJSON(con, flatten = TRUE)
+head(tmp)
+
+exports = data.frame(tmp$observations)
+exports$value <- as.numeric(exports$value)
+```
+
+```{r}
+#Load data Imports: Value Goods for China
+endpoint = "https://api.stlouisfed.org/fred/"
+search_text = "XTIMVA01CNM667N"
+series_id = "XTIMVA01CNM667N"
+
+url = paste0(endpoint, 
+             "series/observations?series_id=",series_id,
+             "&api_key=", 
+             token, "&file_type=json")
+print(url)
+
+#GET Request
+res = httr::GET(url)
+print(res)
+
+#Extract Content
+con = httr::content(res, as = "text", encoding = "UTF-8")
+print(con)
+
+#Parse Content
+tmp = jsonlite::fromJSON(con, flatten = TRUE)
+head(tmp)
+
+imports = data.frame(tmp$observations)
+imports$value <- as.numeric(imports$value)
+```
+
+```{r}
+#Load data Monetary Base; Total
+endpoint = "https://api.stlouisfed.org/fred/"
+search_text = "BOGMBASE"
+series_id = "BOGMBASE"
+
+url = paste0(endpoint, 
+             "series/observations?series_id=",series_id,
+             "&api_key=", 
+             token, "&file_type=json")
+print(url)
+
+#GET Request
+res = httr::GET(url)
+print(res)
+
+#Extract Content
+con = httr::content(res, as = "text", encoding = "UTF-8")
+print(con)
+
+#Parse Content
+tmp = jsonlite::fromJSON(con, flatten = TRUE)
+head(tmp)
+
+money = data.frame(tmp$observations)
+money$value <- as.numeric(money$value)
+```
+
+```{r}
+#Load data Japan / U.S. Foreign Exchange Rate
+endpoint = "https://api.stlouisfed.org/fred/"
+search_text = "EXJPUS"
+series_id = "EXJPUS"
+
+url = paste0(endpoint, 
+             "series/observations?series_id=",series_id,
+             "&api_key=", 
+             token, "&file_type=json")
+print(url)
+
+#GET Request
+res = httr::GET(url)
+print(res)
+
+#Extract Content
+con = httr::content(res, as = "text", encoding = "UTF-8")
+print(con)
+
+#Parse Content
+tmp = jsonlite::fromJSON(con, flatten = TRUE)
+head(tmp)
+
+EXJPUS = data.frame(tmp$observations)
+EXJPUS$value <- as.numeric(EXJPUS$value)
+```
+
+```{r}
+#Load data Industrial Production Index
+endpoint = "https://api.stlouisfed.org/fred/"
+search_text = "INDPRO"
+series_id = "INDPRO"
+
+url = paste0(endpoint, 
+             "series/observations?series_id=",series_id,
+             "&api_key=", 
+             token, "&file_type=json")
+print(url)
+
+#GET Request
+res = httr::GET(url)
+print(res)
+
+#Extract Content
+con = httr::content(res, as = "text", encoding = "UTF-8")
+print(con)
+
+#Parse Content
+tmp = jsonlite::fromJSON(con, flatten = TRUE)
+head(tmp)
+
+INDPRO = data.frame(tmp$observations)
+INDPRO$value <- as.numeric(INDPRO$value)
+```
+
+```{r}
+#Merging data
+
+#Get rid of realtime_start and realtime_end variables
+EXJPUS <- EXJPUS[,3:4]
+names(EXJPUS)[2]<-"EXJPUS"
+exports <- exports[,3:4]
+names(exports)[2]<-"exports"
+imports <- imports[,3:4]
+names(imports)[2]<-"imports"
+INDPRO <- INDPRO[,3:4]
+names(INDPRO)[2]<-"INDPRO"
+Manufacturing <- Manufacturing[,3:4]
+names(Manufacturing)[2]<-"Manufacturing"
+money <- money[,3:4]
+names(money)[2]<-"money"
+Uncertainty <- Uncertainty[,3:4]
+names(Uncertainty)[2]<-"Uncertainty"
+
+df <- merge(exports, imports, by.x = "date", by.y = "date")
+df <- merge(df, EXJPUS, by.x = "date", by.y = "date", all.x = TRUE)
+df <- merge(df, INDPRO, by.x = "date", by.y = "date", all.x = TRUE)
+df <- merge(df, Manufacturing, by.x = "date", by.y = "date", all.x = TRUE)
+df <- merge(df, money, by.x = "date", by.y = "date", all.x = TRUE)
+df <- merge(df, Uncertainty, by.x = "date", by.y = "date", all.x = TRUE)
+
+#Percentage change for exports/imports
+df$d.exports <- Lag(df$exports, +1)
+df$exports_percent_change <- ((df$exports-df$d.exports)/df$d.exports)*100
+df$d.imports <- Lag(df$imports, +1)
+df$imports_percent_change <- ((df$imports-df$d.imports)/df$d.exports)*100
+df$d.exports <-NULL
+df$d.imports <- NULL
+
+#Starting in January 2010
+df <- df[217:333,]
+
+#Add important events
+df$important_events <- 0
+df$important_events[8]=1
+df$important_events[23]=1
+df$important_events[27]=1
+df$important_events[35]=1
+df$important_events[42]=1
+df$important_events[53]=1
+df$important_events[86]=1
+df$important_events[88]=1
+df$important_events[99]=1
+df$important_events[103]=1
+df$important_events[106]=1
+df$important_events[108]=1
+df$important_events[111]=1
+df$important_events[113]=1
+df$important_events[116]=1
+```
+
+```{r}
+#Correlation matrix
+res <- cor(df[,-1])
+round(res, 2)
+```
+
+```{r}
+ts_manufacturing <- ts(df$Manufacturing, start=c(2010,1), end = c(2019,9), frequency = 12)
+```
+
+```{r}
+#Plot
+plot(ts_manufacturing, xlab="Date",ylab="Manufacturing (Index 2012=100)",main="Industrial Production: Manufacturing (NAICS)")
+Corner_text <- function(text, location="bottomright"){
+  legend(location,legend=text, bty ="n", pch=NA) 
+}
+Corner_text("Frequency=Monthly. Data are not seasonally-adjusted.")
+```
+
+```{r}
+#Dickey Fuller Test
+
+adf.test(ts_manufacturing, alternative = "stationary", k=0)
+```
+
+```{r}
+#Decompose data
+df2 <- decompose(ts_manufacturing)
+plot(df2)
+```
+
+```{r}
+#Correlogram
+acf(ts_manufacturing)
+pacf(ts_manufacturing)
+```
+
+
+```{r}
+#Create seasonal dummies
+library(forecast)
+sdmod <- seasonaldummy(ts_manufacturing)
+
+#Append them to original dataset
+df <- cbind(df,sdmod)
+
+#Split data into 1st 80 percent and last 20 percent
+117*.8
+train <- df[1:94,]
+test <- df[95:117,]
+```
+
+```{r}
+#model 1 (just auto.arima)
+mod1 <- auto.arima(train$Manufacturing)
+summary(mod1)
+#ARIMA(0,1,1) with drift 
+#AIC = 363.04   
+#BIC = 370.64
+
+#Forecast
+fcast1 <- forecast(mod1, h=23)
+accuracy(fcast1, x=test$Manufacturing)
+
+#Test accuracy another way
+combined <- cbind(fcast1,test)
+
+combined$Difference <- combined$Manufacturing - combined$`Point Forecast` 
+RSS <- c(crossprod(combined$Difference))
+MSE <- RSS / length(combined$Difference)
+RMSE <- sqrt(MSE)
+RMSE
+```
+
+```{r}
+#model 2 (auto.arima with seasonal dummies)
+xreg = train[,c(12:22)]
+xreg <- data.matrix(xreg[1:11], rownames.force = NA)
+
+fxreg= test[,c(12:22)]
+fxreg <- data.matrix(fxreg[1:11], rownames.force = NA)
+
+#auto.arima
+mod2 <- auto.arima(train$Manufacturing, xreg=xreg)
+summary(mod2)
+#ARIMA(0,1,1)
+#AIC=174.24
+#BIC=209.7
+
+#Forecast
+fcast2 <- forecast(mod2, h=23, xreg=fxreg)
+accuracy(fcast2, x=test$Manufacturing)
+
+#Plot
+plot(fcast2, xlab = "Date", ylab = "Manufacturing", main = "Industrial Production Manufacturing (NAICS)")
+lines(df$Manufacturing, col="red")
+legend("topleft",legend=c("Forecast","Actuals"),col=c("blue","red"), lty=1:2, cex=0.8)
+
+#For residuals
+combined <- cbind(fcast2,test)
+combined$Difference <- combined$Manufacturing - combined$`Point Forecast` 
+plot(combined$Difference, type = "l")
+```
+
+```{r}
+#model 3 (auto.arima with seasonal dummies & Exports)
+xreg = train[,c(2,12:22)]
+xreg <- data.matrix(xreg[1:12], rownames.force = NA)
+
+fxreg= test[,c(2,12:22)]
+fxreg <- data.matrix(fxreg[1:12], rownames.force = NA)
+
+#auto.arima
+mod3 <- auto.arima(train$Manufacturing, xreg=xreg)
+summary(mod3)
+#ARIMA(1,1,0)
+#AIC=175.77
+#BIC=213.76
+
+#Forecast
+fcast3 <- forecast(mod3, h=23, xreg=fxreg)
+accuracy(fcast3, x=test$Manufacturing)
+
+#Plot
+plot(fcast3, xlab = "Date", ylab = "Manufacturing", main = "Industrial Production Manufacturing (NAICS)")
+lines(df$Manufacturing, col="red")
+legend("topleft",legend=c("Forecast","Actuals"),col=c("blue","red"), lty=1:2, cex=0.8)
+
+#For residuals
+combined <- cbind(fcast3,test)
+combined$Difference <- combined$Manufacturing - combined$`Point Forecast` 
+plot(combined$Difference, type = "l")
+```
+
+```{r}
+#model 4 (auto.arima with seasonal dummies and imports)
+xreg = train[,c(3,12:22)]
+xreg <- data.matrix(xreg[1:12], rownames.force = NA)
+
+fxreg= test[,c(3,12:22)]
+fxreg <- data.matrix(fxreg[1:12], rownames.force = NA)
+
+#auto.arima
+mod4 <- auto.arima(train$Manufacturing, xreg=xreg)
+summary(mod4)
+#ARIMA(0,1,0)
+#AIC=173.14
+#BIC=208.6
+
+#Forecast
+fcast4 <- forecast(mod4, h=23, xreg=fxreg)
+accuracy(fcast4, x=test$Manufacturing)
+
+#Plot
+plot(fcast3, xlab = "Date", ylab = "Manufacturing", main = "Industrial Production Manufacturing (NAICS)")
+lines(df$Manufacturing, col="red")
+legend("topleft",legend=c("Forecast","Actuals"),col=c("blue","red"), lty=1:2, cex=0.8)
+
+#For residuals
+combined <- cbind(fcast4,test)
+combined$Difference <- combined$Manufacturing - combined$`Point Forecast` 
+plot(combined$Difference, type = "l")
+```
+
+```{r}
+#model 5 (auto.arima with seasonal dummies and EXJPUS)
+xreg = train[,c(4,12:22)]
+xreg <- data.matrix(xreg[1:12], rownames.force = NA)
+
+fxreg= test[,c(4,12:22)]
+fxreg <- data.matrix(fxreg[1:12], rownames.force = NA)
+
+#auto.arima
+mod5 <- auto.arima(train$Manufacturing, xreg=xreg)
+summary(mod5)
+#ARIMA(0,1,1)
+#AIC=176.23
+#BIC=214.21
+
+#Forecast
+fcast5 <- forecast(mod5, h=23, xreg=fxreg)
+accuracy(fcast5, x=test$Manufacturing)
+
+#Plot
+plot(fcast5, xlab = "Date", ylab = "Manufacturing", main = "Industrial Production Manufacturing (NAICS)")
+lines(df$Manufacturing, col="red")
+legend("topleft",legend=c("Forecast","Actuals"),col=c("blue","red"), lty=1:2, cex=0.8)
+
+#For residuals
+combined <- cbind(fcast5,test)
+combined$Difference <- combined$Manufacturing - combined$`Point Forecast` 
+plot(combined$Difference, type = "l")
+```
+
+```{r}
+#model 6 (auto.arima with seasonal dummies and INDPRO)
+xreg = train[,c(5,12:22)]
+xreg <- data.matrix(xreg[1:12], rownames.force = NA)
+
+fxreg= test[,c(5,12:22)]
+fxreg <- data.matrix(fxreg[1:12], rownames.force = NA)
+
+#auto.arima
+mod6 <- auto.arima(train$Manufacturing, xreg=xreg)
+summary(mod6)
+#ARIMA(3,0,0)
+#AIC=113.85
+#BIC=157.09
+
+#Forecast
+fcast6 <- forecast(mod6, h=23, xreg=fxreg)
+library(Metrics)
+rmse(fcast6$mean, test$Manufacturing)
+
+#Plot
+plot(fcast6, xlab = "Date", ylab = "Manufacturing", main = "Industrial Production Manufacturing (NAICS)")
+lines(df$Manufacturing, col="red")
+legend("topleft",legend=c("Forecast","Actuals"),col=c("blue","red"), lty=1:2, cex=0.8)
+
+#For residuals
+combinedmod6 <- cbind(fcast6,test)
+combinedmod6$Difference <- combinedmod6$Manufacturing - combinedmod6$`Point Forecast` 
+plot(combinedmod6$Difference, type = "l")
+```
+
+```{r}
+#model 7 (auto.arima with seasonal dummies and money)
+xreg = train[,c(7,12:22)]
+xreg <- data.matrix(xreg[1:12], rownames.force = NA)
+
+fxreg= test[,c(7,12:22)]
+fxreg <- data.matrix(fxreg[1:12], rownames.force = NA)
+
+#auto.arima
+mod7 <- auto.arima(train$Manufacturing, xreg=xreg)
+summary(mod7)
+#ARIMA(0,0,4)
+#AIC=227.72
+#BIC=273.5
+
+#Forecast
+fcast7 <- forecast(mod7, h=23, xreg=fxreg)
+accuracy(fcast7, x=test$Manufacturing)
+
+#Plot
+plot(fcast7, xlab = "Date", ylab = "Manufacturing", main = "Industrial Production Manufacturing (NAICS)")
+lines(df$Manufacturing, col="red")
+legend("topleft",legend=c("Forecast","Actuals"),col=c("blue","red"), lty=1:2, cex=0.8)
+
+#For residuals
+combined <- cbind(fcast7,test)
+combined$Difference <- combined$Manufacturing - combined$`Point Forecast` 
+plot(combined$Difference, type = "l")
+```
+
+```{r}
+#model 8 (auto.arima with seasonal dummies and uncertainty)
+xreg = train[,c(8,12:22)]
+xreg <- data.matrix(xreg[1:12], rownames.force = NA)
+
+fxreg= test[,c(8,12:22)]
+fxreg <- data.matrix(fxreg[1:12], rownames.force = NA)
+
+#auto.arima
+mod8 <- auto.arima(train$Manufacturing, xreg=xreg)
+summary(mod8)
+#ARIMA(0,1,1)
+#AIC=174.99
+#BIC=212.98
+
+#Forecast
+fcast8 <- forecast(mod8, h=23, xreg=fxreg)
+accuracy(fcast8, x=test$Manufacturing)
+
+#Plot
+plot(fcast8, xlab = "Date", ylab = "Manufacturing", main = "Industrial Production Manufacturing (NAICS)")
+lines(df$Manufacturing, col="red")
+legend("topleft",legend=c("Forecast","Actuals"),col=c("blue","red"), lty=1:2, cex=0.8)
+
+#For residuals
+combined <- cbind(fcast8,test)
+combined$Difference <- combined$Manufacturing - combined$`Point Forecast` 
+plot(combined$Difference, type = "l")
+```
+
+```{r}
+#model 9 (auto.arima with seasonal dummies and INDPRO and exports)
+xreg = train[,c(2,5,12:22)]
+xreg <- data.matrix(xreg[1:13], rownames.force = NA)
+
+fxreg= test[,c(2,5,12:22)]
+fxreg <- data.matrix(fxreg[1:13], rownames.force = NA)
+
+#auto.arima
+mod9 <- auto.arima(train$Manufacturing, xreg=xreg)
+summary(mod9)
+#ARIMA(3,0,0)
+#AIC=114.74
+#BIC=160.52
+
+#Forecast
+fcast9 <- forecast(mod9, h=23, xreg=fxreg)
+rmse(fcast9$mean, test$Manufacturing)
+
+#Plot
+plot(fcast9, xlab = "Date", ylab = "Manufacturing", main = "Industrial Production Manufacturing (NAICS)")
+lines(df$Manufacturing, col="red")
+legend("topleft",legend=c("Forecast","Actuals"),col=c("blue","red"), lty=1:2, cex=0.8)
+
+#For residuals
+combined300 <- cbind(fcast9,test)
+combined300$Difference <- combined300$Manufacturing - combined300$`Point Forecast` 
+plot(combined300$Difference, type = "l")
+```
+
+```{r}
+#model 10 (auto.arima with seasonal dummies and INDPRO and exports and uncertainty)
+xreg = train[,c(2,5,8,12:22)]
+xreg <- data.matrix(xreg[1:14], rownames.force = NA)
+
+fxreg= test[,c(2,5,8,12:22)]
+fxreg <- data.matrix(fxreg[1:14], rownames.force = NA)
+
+#auto.arima
+mod10 <- auto.arima(train$Manufacturing, xreg=xreg)
+summary(mod10)
+#ARIMA(4,0,0)
+#AIC=115.98
+#BIC=164.31
+
+#Forecast
+fcast10 <- forecast(mod10, h=23, xreg=fxreg)
+accuracy(fcast10, x=test$Manufacturing)
+
+#Plot
+plot(fcast10, xlab = "Date", ylab = "Manufacturing", main = "Industrial Production Manufacturing (NAICS)")
+lines(df$Manufacturing, col="red")
+legend("topleft",legend=c("Forecast","Actuals"),col=c("blue","red"), lty=1:2, cex=0.8)
+
+#For residuals
+combined <- cbind(fcast10,test)
+combined$Difference <- combined$Manufacturing - combined$`Point Forecast` 
+plot(combined$Difference, type = "l")
+```
+
+```{r}
+#Model 11 (VARs) just manufacturing and INDPRO
+mod11_df <- train[,5:6]
+mod11 <- VAR(mod11_df, p = 1)
+mod11
+summary(mod11)
+vars::VARselect(mod11_df, lag.max = 9, type = "const")$criteria
+
+##Forecasting
+prd <- predict(mod11, n.ahead = 23, ci = 0.95, dumvar = NULL)
+print(prd)
+plot(prd, "single")
+
+combined <- cbind(test, prd$fcst$Manufacturing)
+
+#Qiang approach to rmse
+library(Metrics)
+rmse(test$Manufacturing, prd$fcst$Manufacturing[,1])
+#2.90223
+```
+
+```{r}
+#Model 12 VARS manufacturing and INDPRO and seaonsal dummies
+model12 <- VAR(cbind(train$Manufacturing, train$INDPRO),type ="both", p = 1,exogen = cbind(train$Jan, train$Feb, train$Mar, train$Apr, train$May, train$Jun, train$Jul, train$Aug, train$Sep, train$Oct, train$Nov))
+
+exo_predict <- cbind(train$Jan, train$Feb, train$Mar, train$Apr, train$May, train$Jun, train$Jul, train$Aug, train$Sep, train$Oct, train$Nov)
+
+colnames(exo_predict) <- c("exo1", "exo2", "exo3", "exo4", "exo5", "exo6", "exo7", "exo8", "exo9", "exo10", "exo11")
+pred <- predict(model12, n.ahead=nrow(exo_predict),dumvar=exo_predict)
+pred
+
+#RMSE
+RMSE_Manufacturing <- sqrt(mean((pred$fcst$y1[1:23,1] - as.vector(test$Manufacturing)) ^ 2))
+RMSE_Manufacturing
+```
+
+```{r}
+#model 13 (auto.arima with seasonal dummies and percent change in exports)
+xreg = train[,c(9,12:22)]
+xreg <- data.matrix(xreg[1:12], rownames.force = NA)
+
+fxreg= test[,c(9,12:22)]
+fxreg <- data.matrix(fxreg[1:12], rownames.force = NA)
+
+#auto.arima
+mod13 <- auto.arima(train$Manufacturing, xreg=xreg)
+summary(mod13)
+#ARIMA(0,1,1)
+#AIC=176.19
+#BIC=214.18
+
+#Forecast
+fcast13 <- forecast(mod13, h=23, xreg=fxreg)
+accuracy(fcast13, x=test$Manufacturing)
+
+#Plot
+plot(fcast13, xlab = "Date", ylab = "Manufacturing", main = "Industrial Production Manufacturing (NAICS)")
+lines(df$Manufacturing, col="red")
+legend("topleft",legend=c("Forecast","Actuals"),col=c("blue","red"), lty=1:2, cex=0.8)
+
+#For residuals
+combined <- cbind(fcast13,test)
+combined$Difference <- combined$Manufacturing - combined$`Point Forecast` 
+plot(combined$Difference, type = "l")
+```
+
+```{r}
+#model 14 (auto.arima with seasonal dummies and percent change in imports)
+xreg = train[,c(10,12:22)]
+xreg <- data.matrix(xreg[1:12], rownames.force = NA)
+
+fxreg= test[,c(10,12:22)]
+fxreg <- data.matrix(fxreg[1:12], rownames.force = NA)
+
+#auto.arima
+mod14 <- auto.arima(train$Manufacturing, xreg=xreg)
+summary(mod14)
+#ARIMA(0,1,1)
+#AIC=174.6
+#BIC=212.58
+
+#Forecast
+fcast14 <- forecast(mod14, h=23, xreg=fxreg)
+accuracy(fcast14, x=test$Manufacturing)
+
+#Plot
+plot(fcast14, xlab = "Date", ylab = "Manufacturing", main = "Industrial Production Manufacturing (NAICS)")
+lines(df$Manufacturing, col="red")
+legend("topleft",legend=c("Forecast","Actuals"),col=c("blue","red"), lty=1:2, cex=0.8)
+
+#For residuals
+combined <- cbind(fcast14,test)
+combined$Difference <- combined$Manufacturing - combined$`Point Forecast` 
+plot(combined$Difference, type = "l")
+```
+
+```{r}
+#model 15 (auto.arima with seasonal dummies and important events)
+xreg = train[,c(11:22)]
+xreg <- data.matrix(xreg[1:12], rownames.force = NA)
+
+fxreg= test[,c(11:22)]
+fxreg <- data.matrix(fxreg[1:12], rownames.force = NA)
+
+#auto.arima
+mod15 <- auto.arima(train$Manufacturing, xreg=xreg)
+summary(mod15)
+#ARIMA(0,1,1)
+#AIC=174.6
+#BIC=212.58
+
+#Forecast
+fcast15 <- forecast(mod15, h=23, xreg=fxreg)
+accuracy(fcast15, x=test$Manufacturing)
+
+#Plot
+plot(fcast15, xlab = "Date", ylab = "Manufacturing", main = "Industrial Production Manufacturing (NAICS)")
+lines(df$Manufacturing, col="red")
+legend("topleft",legend=c("Forecast","Actuals"),col=c("blue","red"), lty=1:2, cex=0.8)
+
+#For residuals
+combined <- cbind(fcast15,test)
+combined$Difference <- combined$Manufacturing - combined$`Point Forecast` 
+plot(combined$Difference, type = "l")
+```
+
+```{r}
+#model 16 (auto.arima with seasonal dummies and INDPRO and exports)
+xreg = train[,c(2,3,5,12:22)]
+xreg <- data.matrix(xreg[1:14], rownames.force = NA)
+
+fxreg= test[,c(2,3,5,12:22)]
+fxreg <- data.matrix(fxreg[1:14], rownames.force = NA)
+
+#auto.arima
+mod16 <- auto.arima(train$Manufacturing, xreg=xreg)
+summary(mod16)
+#ARIMA(1,0,1)
+#AIC=115.26
+#BIC=161.04
+
+#Forecast
+fcast16 <- forecast(mod16, h=23, xreg=fxreg)
+accuracy(fcast16, x=test$Manufacturing)
+
+#Plot
+plot(fcast16, xlab = "Date", ylab = "Manufacturing", main = "Industrial Production Manufacturing (NAICS)")
+lines(df$Manufacturing, col="red")
+legend("topleft",legend=c("Forecast","Actuals"),col=c("blue","red"), lty=1:2, cex=0.8)
+
+#For residuals
+combined <- cbind(fcast16,test)
+combined$Difference <- combined$Manufacturing - combined$`Point Forecast` 
+plot(combined$Difference, type = "l", main = "Residuals")
+```
+
+```{r}
+#Model 17 VARS manufacturing, INDPRO, imports,exports
+mod17_df <- train[,c(2,3,5,6)]
+vars::VARselect(mod17_df, lag.max = 9, type = "const")$criteria
+mod17 <- VAR(mod17_df, p = 8)
+mod17
+summary(mod17)
+
+##Forecasting
+prd <- predict(mod17, n.ahead = 23, ci = 0.95, dumvar = NULL)
+print(prd)
+plot(prd, "single")
+
+combined <- cbind(test, prd$fcst$Manufacturing)
+
+#Qiang approach to rmse
+library(Metrics)
+rmse(test$Manufacturing, prd$fcst$Manufacturing[,1])
+#3.025255
+```
+
+```{r}
+#Model 18 VARS manufacturing and INDPRO and (exports, imports, seaonsal dummies are exogenous variables
+model18 <- VAR(cbind(train$Manufacturing, train$INDPRO),type ="both", p = 8,exogen = cbind(train$Jan, train$Feb, train$Mar, train$Apr, train$May, train$Jun, train$Jul, train$Aug, train$Sep, train$Oct, train$Nov, train$exports, train$imports))
+
+exo_predict <- cbind(train$Jan, train$Feb, train$Mar, train$Apr, train$May, train$Jun, train$Jul, train$Aug, train$Sep, train$Oct, train$Nov, train$exports, train$imports)
+
+colnames(exo_predict) <- c("exo1", "exo2", "exo3", "exo4", "exo5", "exo6", "exo7", "exo8", "exo9", "exo10", "exo11", "exo12", "exo13")
+pred <- predict(model18, n.ahead=nrow(exo_predict),dumvar=exo_predict)
+pred
+
+#RMSE
+RMSE_Manufacturing <- sqrt(mean((pred$fcst$y1[1:23,1] - as.vector(test$Manufacturing)) ^ 2))
+RMSE_Manufacturing
+```
+
+```{r}
+#model 19 (auto.arima with seasonal dummies, INDPRO, imports, exports)
+xreg = train[,c(2,3,5,12:22)]
+xreg <- data.matrix(xreg[1:14], rownames.force = NA)
+
+fxreg= test[,c(2,3,5,12:22)]
+fxreg <- data.matrix(fxreg[1:14], rownames.force = NA)
+
+#auto.arima
+mod19 <- auto.arima(train$Manufacturing, xreg=xreg)
+summary(mod19)
+#ARIMA(1,0,1)
+#AIC=115.26
+#BIC=161.04
+
+#Forecast
+fcast19 <- forecast(mod19, h=23, xreg=fxreg)
+library(Metrics)
+rmse(fcast19$mean, test$Manufacturing)
+#0.7560797
+
+#Plot
+plot(fcast19, xlab = "Date", ylab = "Manufacturing", main = "Industrial Production Manufacturing (NAICS)")
+lines(df$Manufacturing, col="red")
+legend("topleft",legend=c("Forecast","Actuals"),col=c("blue","red"), lty=1:2, cex=0.8)
+
+#For residuals
+combined101 <- cbind(fcast19,test)
+combined101$Difference <- combined101$Manufacturing - combined101$`Point Forecast` 
+plot(combined101$Difference, type = "l", main = "Residuals")
+```
+
+```{r}
+#adding Trump's inauguration to df
+df2 <- df
+df2$Trump <- 0
+
+#Trump's inauguration was in January 2017
+df2$ID <- seq.int(nrow(df2))
+df2$Trump[df2$ID > 84] <- 1
+df2$ID <- NULL
+
+#Split data again
+train2 <- df2[1:94,]
+test2 <- df2[95:117,]
+```
+
+```{r}
+#model 20 (auto.arima with seasonal dummies, INDPRO, imports, exports, Trump)
+xreg = train2[,c(2,3,5,12:23)]
+xreg <- data.matrix(xreg[1:15], rownames.force = NA)
+
+fxreg= test2[,c(2,3,5,12:23)]
+fxreg <- data.matrix(fxreg[1:15], rownames.force = NA)
+
+#auto.arima
+mod20 <- auto.arima(train$Manufacturing, xreg=xreg)
+summary(mod20)
+#ARIMA(1,0,1)
+#AIC=116.12
+#BIC=164.44
+
+#Forecast
+fcast20 <- forecast(mod20, h=23, xreg=fxreg)
+rmse(fcast20$mean, test$Manufacturing)
+
+
+#Plot
+plot(fcast20, xlab = "Date", ylab = "Manufacturing", main = "Industrial Production Manufacturing (NAICS)")
+lines(df$Manufacturing, col="red")
+legend("topleft",legend=c("Forecast","Actuals"),col=c("blue","red"), lty=1:2, cex=0.8)
+
+#For residuals
+combined <- cbind(fcast20,test)
+combined$Difference <- combined$Manufacturing - combined$`Point Forecast` 
+plot(combined$Difference, type = "l", main = "Residuals")
+```
+
+```{r}
+#model 21 (auto.arima with seasonal dummies, INDPRO, imports, exports)
+xreg = train[,c(2,3,5,12:22)]
+xreg <- data.matrix(xreg[1:14], rownames.force = NA)
+
+fxreg= test[,c(2,3,5,12:22)]
+fxreg <- data.matrix(fxreg[1:14], rownames.force = NA)
+
+#auto.arima
+mod21 <- Arima(train$Manufacturing, order=c(6,0,0), xreg=xreg)
+summary(mod21)
+#ARIMA(6,0,0)
+
+#Forecast
+fcast21 <- forecast(mod21, h=23, xreg=fxreg)
+library(Metrics)
+rmse(fcast21$mean, test$Manufacturing)
+#0.7560797
+
+#Plot
+plot(fcast21, xlab = "Date", ylab = "Manufacturing", main = "Industrial Production Manufacturing (NAICS)")
+lines(df$Manufacturing, col="red")
+legend("topleft",legend=c("Forecast","Actuals"),col=c("blue","red"), lty=1:2, cex=0.8)
+
+#For residuals
+combinedmod21 <- cbind(fcast21,test)
+combinedmod21$Difference <- combinedmod21$Manufacturing - combinedmod21$`Point Forecast` 
+plot(combinedmod21$Difference, type = "l", main = "Residuals")
+```
+
+```{r}
+#model 22 (auto.arima with seasonal dummies, INDPRO)
+xreg = train[,c(5,12:22)]
+xreg <- data.matrix(xreg[1:12], rownames.force = NA)
+
+fxreg= test[,c(5,12:22)]
+fxreg <- data.matrix(fxreg[1:12], rownames.force = NA)
+
+#auto.arima
+mod22 <- Arima(train$Manufacturing, order=c(1,0,1), xreg=xreg)
+summary(mod22)
+#ARIMA(1,0,1)
+AIC()
+
+#Forecast
+fcast22 <- forecast(mod22, h=23, xreg=fxreg)
+library(Metrics)
+rmse(fcast22$mean, test$Manufacturing)
+#0.7846745
+
+#Plot
+plot(fcast22, xlab = "Date", ylab = "Manufacturing", main = "Industrial Production Manufacturing (NAICS)")
+lines(df$Manufacturing, col="red")
+legend("topleft",legend=c("Forecast","Actuals"),col=c("blue","red"), lty=1:2, cex=0.8)
+
+#For residuals
+combinedmod22 <- cbind(fcast22,test)
+combinedmod22$Difference <- combinedmod22$Manufacturing - combinedmod21$`Point Forecast` 
+plot(combinedmod22$Difference, type = "l", main = "Residuals", ylab="Difference")
+abline(h=0, col=c("blue"), lty=c(2))
+```
+
+```{r}
+#Diagnostics on residuals for Model 9 (ARIMA(3,0,0))
+#Ljung-Box Test
+Box.test(combined300$Difference, lag = 1, type = c("Ljung-Box"), fitdf = 0)
+acf(combined300$Difference)
+pacf(combined300$Difference)
+```
+
+```{r}
+#Diagnostics on residuals for Model 19 (ARIMA(1,0,1))
+#Ljung-Box Test
+Box.test(combined101$Difference, lag = 1, type = c("Ljung-Box"), fitdf = 0)
+acf(combined101$Difference)
+pacf(combined101$Difference)
+```
+
+```{r}
+#Diagnostics on residuals for Model 6 (ARIMA(3,0,0))
+#Ljung-Box Test
+Box.test(combinedmod6$Difference, lag = 1, type = c("Ljung-Box"), fitdf = 0)
+acf(combinedmod6$Difference)
+pacf(combinedmod6$Difference)
+```
+
+```{r}
+#Diagnostics on residuals for Model 21 (ARIMA(12,0,0))
+#Ljung-Box Test
+Box.test(combinedmod21$Difference, lag = 1, type = c("Ljung-Box"), fitdf = 0)
+acf(combinedmod21$Difference)
+pacf(combinedmod21$Difference)
+```
+
+```{r}
+#Diagnostics on residuals for Model 22 (ARIMA(1,0,1))
+#Ljung-Box Test
+Box.test(combinedmod22$Difference, lag = 1, type = c("Ljung-Box"), fitdf = 0)
+acf(combinedmod22$Difference)
+pacf(combinedmod22$Difference)
+```
+
+```{r}
+#DM Test between model 9 and model 19
+dm.test(combined300$Difference, combined101$Difference, alternative = c("two.sided"), h = 23, power = 2)
+
+#DM Test between model 6 and model 19
+dm.test(combinedmod6$Difference, combined101$Difference, alternative = c("two.sided"), h = 23, power = 2)
+
+#DM Test between model 6 and model 9
+dm.test(combinedmod6$Difference, combined300$Difference, alternative = c("two.sided"), h = 23, power = 2)
+
+#DM Test between model 19 and model 22
+dm.test(combined101$Difference, combinedmod22$Difference, alternative = c("two.sided"), h = 23, power = 2)
+```
